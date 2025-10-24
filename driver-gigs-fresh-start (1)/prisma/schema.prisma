@@ -1,0 +1,939 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String        @id
+  name          String
+  email         String
+  emailVerified Boolean       @default(false)
+  image         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @default(now()) @updatedAt
+  totalEarnings Float @default(0)
+  completedGigs Int @default(0)
+  rating Float @default(0)
+  // Contact Information
+  phoneNumber   String?
+  streetAddress String?
+  city          String?
+  state         String?
+  zipCode       String?
+  sessions      Session[]
+  accounts      Account[]
+  jobPreferences JobPreferences?
+  fileUploads   FileUpload[]
+  licenses      License[]
+  certifications Certification[]
+  dotMcNumbers  DOTMCNumbers?
+  companyStatuses UserCompanyStatus[]
+  onboardingProgress OnboardingProgress[]
+  onboardingSubStepProgress OnboardingSubStepProgress[]
+  networkingGroups NetworkingGroup[]
+  vehicles Vehicle[]
+  boards Board[]
+  reminders Reminder[]
+  creditScores CreditScore[]
+  creditGoals CreditGoal[]
+  creditTradelines CreditTradeline[]
+  businessProfiles BusinessProfile[]
+
+  @@unique([email])
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
+
+  @@map("verification")
+}
+
+model JobPreferences {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Personal Information
+  dateOfBirth           DateTime?
+  
+  // Goals & Objectives
+  primaryGoal           String   // full-time-income, part-time-supplemental, flexible-schedule, experience-industries
+  targetIncome          String   // 500-1500, 1500-3000, 3000-5000, 5000-plus
+  
+  // Industry Interests (stored as JSON array)
+  interestedIndustries  String[] // food, package-delivery, rideshare, freight, medical, etc.
+  
+  // Vehicle Types (stored as JSON array)
+  availableVehicles     String[] // car, suv, van, truck, bike, other
+  
+  // Travel Preferences
+  travelDistance        String   // local, regional, long-distance, flexible
+  
+  // Additional Information
+  additionalInfo        String?
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@map("job_preferences")
+}
+
+model FileUpload {
+  id                String    @id @default(cuid())
+  userId            String
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // File Information
+  fileName          String    // Original file name
+  fileKey           String    // S3 object key (includes folder path)
+  fileUrl           String    // Full S3 URL
+  fileSize          Int       // File size in bytes
+  mimeType          String    // MIME type of the file
+  folder            String?   // Folder/category for organization
+  
+  // File Status
+  isDeleted         Boolean   @default(false)
+  deletedAt         DateTime?
+  
+  // Metadata
+  description       String?
+  tags              String[]  // Array of tags for categorization
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@map("file_uploads")
+}
+
+model License {
+  id                String    @id @default(cuid())
+  userId            String
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // License Information
+  type              String    // drivers-license, auto-insurance, commercial-insurance, tsa-cert, twic-cert
+  status            String    @default("pending") // pending, uploaded, verified, expired, rejected
+  fileKey           String?   // S3 file key
+  fileUrl           String?   // S3 file URL
+  
+  // License Details
+  licenseNumber     String?   // License/certificate number
+  issuingAuthority  String?   // State, agency, or organization
+  issueDate         DateTime? // When license was issued
+  expiryDate        DateTime? // When license expires
+  
+  // Additional Info
+  description       String?   // Additional notes
+  isRequired        Boolean   @default(true) // Whether this license is required
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([userId, type])
+  @@map("licenses")
+}
+
+model Certification {
+  id                String    @id @default(cuid())
+  userId            String
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Certification Information
+  type              String    // hipaa, osha-bbp, osha-fire, osha-hazcom, cpr-firstaid, etc.
+  category          String    // core-medical, advanced-medical, safety-compliance, optional, custom
+  status            String    @default("pending") // pending, uploaded, verified, expired, rejected
+  fileKey           String?   // S3 file key
+  fileUrl           String?   // S3 file URL
+  
+  // Certification Details
+  certificateNumber String?   // Certificate number
+  issuingAuthority  String?   // Training organization
+  issueDate         DateTime? // When certificate was issued
+  expiryDate        DateTime? // When certificate expires
+  
+  // Additional Info
+  description       String?   // Additional notes
+  isRequired        Boolean   @default(false) // Whether this certification is required
+  isCustom          Boolean   @default(false) // Whether this is a custom certification
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([userId, type])
+  @@map("certifications")
+}
+
+model DOTMCNumbers {
+  id                String    @id @default(cuid())
+  userId            String
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // DOT & MC Information
+  dotNumber         String?   // DOT Number
+  mcNumber          String?   // MC Number
+  
+  // File Attachments
+  dotCertificateKey String?   // S3 key for DOT certificate
+  dotCertificateUrl String?   // S3 URL for DOT certificate
+  mcCertificateKey  String?   // S3 key for MC certificate
+  mcCertificateUrl  String?   // S3 URL for MC certificate
+  
+  // Status
+  dotStatus         String    @default("pending") // pending, uploaded, verified, expired, rejected
+  mcStatus          String    @default("pending") // pending, uploaded, verified, expired, rejected
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([userId])
+  @@map("dot_mc_numbers")
+}
+
+model Company {
+  id                      String    @id @default(cuid())
+  name                    String
+  vehicleTypes            String[]  // Array of vehicle types
+  averagePay              String?
+  serviceVertical         String[]  // Array of service verticals
+  contractType            String
+  areasServed             String[]  // Array of areas served
+  insuranceRequirements   String?
+  licenseRequirements     String?
+  certificationsRequired  String[]  // Array of required certifications
+  website                 String?
+  contactEmail            String?
+  contactPhone            String?
+  description             String?
+  logoUrl                 String?
+  isActive                Boolean   @default(true)
+  workflowStatus          String?
+  yearEstablished         String?
+  companySize             String?
+  headquarters            String?
+  businessModel           String?
+  companyMission          String?
+  targetCustomers         String?
+  companyCulture          String?
+  videoUrl                String?
+  
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+  
+  // Relations
+  userStatuses            UserCompanyStatus[]
+
+  // Indexes for efficient searching
+  @@index([name])
+  @@index([contractType])
+  @@index([isActive])
+  @@index([serviceVertical])
+  @@index([vehicleTypes])
+  @@index([areasServed])
+  @@index([createdAt])
+  @@map("companies")
+}
+
+model UserCompanyStatus {
+  id        String    @id @default(cuid())
+  userId    String
+  companyId String
+  status    String    // Researching, Applied, Wait List, Active, Other
+  notes     String?   // Optional notes about the status
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  
+  // Relations
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company   Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  // Ensure one status per user-company combination
+  @@unique([userId, companyId])
+  @@index([userId])
+  @@index([companyId])
+  @@index([status])
+  @@map("user_company_status")
+}
+
+model OnboardingProgress {
+  id                    String    @id @default(cuid())
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Step Information
+  stepId                String    // Matches the step ID from the data file
+  stepOrder             Int       // Order of the step (for sorting)
+  isCompleted           Boolean   @default(false)
+  completionPercentage  Int       @default(0) // 0-100
+  
+  // Relations
+  subSteps              OnboardingSubStepProgress[]
+  
+  // Timestamps
+  startedAt             DateTime? // When user first interacted with this step
+  completedAt           DateTime? // When step was marked as complete
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  // Ensure one progress record per user-step combination
+  @@unique([userId, stepId])
+  @@index([userId])
+  @@index([stepId])
+  @@index([isCompleted])
+  @@index([stepOrder])
+  @@map("onboarding_progress")
+}
+
+model OnboardingSubStepProgress {
+  id                    String    @id @default(cuid())
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Parent Step Reference
+  stepProgressId        String
+  stepProgress          OnboardingProgress @relation(fields: [stepProgressId], references: [id], onDelete: Cascade)
+  
+  // Sub-step Information
+  subStepId             String    // Matches the sub-step ID from the data file
+  subStepOrder          Int       // Order within the parent step
+  isCompleted           Boolean   @default(false)
+  
+  // Metadata
+  title                 String    // Sub-step title
+  description           String    // Sub-step description
+  isOptional            Boolean   @default(false) // Whether this sub-step is optional
+  
+  // External Links (to be added later)
+  actionUrl             String?   // URL for external action
+  actionLabel           String?   // Label for the action button
+  
+  // Timestamps
+  completedAt           DateTime? // When sub-step was marked as complete
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  // Ensure one progress record per user-substep combination
+  @@unique([userId, stepProgressId, subStepId])
+  @@index([userId])
+  @@index([stepProgressId])
+  @@index([subStepId])
+  @@index([isCompleted])
+  @@index([subStepOrder])
+  @@map("onboarding_substep_progress")
+}
+
+model NetworkingGroup {
+  id          String   @id @default(cuid())
+  userId      String   
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Required fields
+  name        String   // e.g., "Driver Jobs Dallas"
+  platform    String   // e.g., "Facebook", "LinkedIn", "Discord", etc.
+  
+  // Optional fields
+  url         String?  // Group URL
+  email       String?  // Contact email
+  username    String?  // Username on the platform
+  joinedDate  DateTime? // When user joined the group
+  notes       String?  // Optional notes
+  
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([platform])
+  @@map("networking_groups")
+}
+
+model Vehicle {
+  id          String   @id @default(cuid())
+  userId      String   
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Basic Information (Required Section)
+  nickname    String   // Vehicle Nickname *
+  year        Int?     // Year
+  make        String   // Make *
+  model       String   // Model *
+  vehicleType String?  // Vehicle Type (dropdown)
+  
+  // Basic Details
+  color       String?
+  vin         String?
+  licensePlate String?
+  state       String?
+  mileage     Int?
+  fuelType    String?  // Gasoline, Diesel, Electric, etc.
+  mpg         Float?
+  ownerNames  String?  // Owner Name(s)
+  purchaseLocation String?
+  
+  // Financial Information (JSON for flexibility)
+  financialInfo Json?   // Purchase date, price, current value, monthly payment, etc.
+  
+  // Vehicle Specifications (JSON for flexibility)
+  specifications Json?  // Weight, dimensions, engine, transmission, etc.
+  
+  // Insurance Information (JSON for complex structure)
+  insuranceInfo Json?   // Company, type, premium, coverage details, etc.
+  
+  // File uploads (JSON array of file references)
+  vehiclePhotos Json?   // Array of photo file keys
+  insuranceDocs Json?   // Insurance documents
+  registrationDocs Json? // Registration & title documents
+  warrantyDocs Json?    // Warranty information
+  maintenanceDocs Json? // Maintenance records
+  otherDocs Json?       // Additional documents
+  
+  // Notes
+  notes       String?
+  
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([make])
+  @@index([vehicleType])
+  @@map("vehicles")
+}
+
+model Board {
+  id          String   @id @default(cuid())
+  userId      String   
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  tags        String[] // Array of tag strings
+  color       String?  // Board color theme
+  isArchived  Boolean  @default(false)
+  tasks       Task[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([isArchived])
+  @@map("boards")
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  boardId     String
+  board       Board     @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  status      TaskStatus @default(TODO)
+  priority    TaskPriority? 
+  dueDate     DateTime?
+  assignedTo  String?   // For future use
+  tags        String[]  // Array of tag strings
+  position    Float     @default(0) // For ordering within status columns
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([boardId])
+  @@index([status])
+  @@index([dueDate])
+  @@map("tasks")
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  PENDING
+  DONE
+  DROPPED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model Reminder {
+  id          String   @id @default(cuid())
+  userId      String   
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Reminder Details
+  title       String   // What to remind about
+  message     String?  // Additional message/description
+  reminderDate DateTime // Date and time for the reminder
+  
+  // Contact Information (optional)
+  contactName String?  // Contact person name
+  contactPhone String? // Phone number
+  contactEmail String? // Email address
+  
+  // Additional Info
+  notes       String?  // Additional notes
+  
+  // Reminder Status
+  status      ReminderStatus @default(PENDING)
+  isActive    Boolean  @default(true)
+  
+  // External Service Integration
+  externalId  String?  // ID from external reminder service
+  serviceType String?  // Type of service used (email, sms, etc.)
+  
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  sentAt      DateTime? // When reminder was actually sent
+  
+  @@index([userId])
+  @@index([reminderDate])
+  @@index([status])
+  @@index([isActive])
+  @@map("reminders")
+}
+
+enum ReminderStatus {
+  PENDING    // Not yet sent
+  SENT       // Successfully sent
+  FAILED     // Failed to send
+  CANCELLED  // Cancelled by user
+}
+
+model CreditScore {
+  id          String   @id @default(cuid())
+  userId      String   
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Credit Bureau Information
+  bureau      CreditBureau // Experian, TransUnion, Equifax
+  scoreType   String   // FICO Score, VantageScore, Equifax Score
+  
+  // Score Details
+  score       Int?     // Current score (0 if not tracked)
+  minRange    Int      @default(300) // Minimum possible score
+  maxRange    Int      @default(850) // Maximum possible score
+  
+  // Tracking Information
+  lastUpdated DateTime? // When score was last updated
+  isTracked   Boolean  @default(false) // Whether user is actively tracking this score
+  
+  // Additional Information
+  notes       String?  // Optional notes
+  
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([userId, bureau])
+  @@index([userId])
+  @@index([bureau])
+  @@map("credit_scores")
+}
+
+enum CreditBureau {
+  EXPERIAN
+  TRANSUNION
+  EQUIFAX
+}
+
+model CreditGoal {
+  id           String     @id @default(cuid())
+  userId       String   
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Goal Information
+  goalType     CreditGoalType // credit_score, debt_payoff, utilization_reduction
+  goalName     String     // User-defined goal name
+  
+  // Goal Values
+  currentValue Float?     // Current value (score, debt amount, utilization %)
+  targetValue  Float      // Target value to achieve
+  targetDate   DateTime?  // Optional target date
+  
+  // Progress Tracking
+  isCompleted  Boolean    @default(false)
+  completedAt  DateTime?  // When goal was achieved
+  
+  // Additional Information
+  notes        String?    // Optional notes
+  
+  // Timestamps
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  
+  @@index([userId])
+  @@index([goalType])
+  @@index([isCompleted])
+  @@map("credit_goals")
+}
+
+enum CreditGoalType {
+  CREDIT_SCORE
+  DEBT_PAYOFF
+  UTILIZATION_REDUCTION
+}
+
+model CreditTradeline {
+  id              String          @id @default(cuid())
+  userId          String   
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Account Information
+  accountName     String          // e.g., "Chase Freedom"
+  accountType     TradelineType   // Credit Card, Auto Loan, etc.
+  creditorName    String          // e.g., "Chase Bank"
+  
+  // Account Status
+  status          TradelineStatus @default(ACTIVE) // Active, Closed, Paid Off
+  
+  // Financial Details
+  creditLimit     Float?          // Credit limit or original loan amount
+  currentBalance  Float           @default(0) // Current balance owed
+  minimumPayment  Float?          // Minimum monthly payment
+  interestRate    Float?          // Interest rate percentage
+  
+  // Account History
+  openedDate      DateTime?       // When account was opened
+  closedDate      DateTime?       // When account was closed (if applicable)
+  
+  // Additional Information
+  notes           String?         // Optional notes
+  
+  // Timestamps
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  @@index([userId])
+  @@index([accountType])
+  @@index([status])
+  @@map("credit_tradelines")
+}
+
+enum TradelineType {
+  CREDIT_CARD
+  AUTO_LOAN
+  MORTGAGE
+  PERSONAL_LOAN
+  LINE_OF_CREDIT
+  STUDENT_LOAN
+  OTHER
+}
+
+enum TradelineStatus {
+  ACTIVE
+  CLOSED
+  PAID_OFF
+}
+
+model BusinessProfile {
+  id              String    @id @default(cuid())
+  userId          String   
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Basic Information
+  companyName     String    // Company Name *
+  businessType    BusinessType // LLC, Corporation, etc.
+  state           String    // State *
+  status          BusinessStatus @default(ACTIVE) // Active, Inactive, Dissolved
+  
+  // Formation Details
+  formationDate   DateTime? // Formation Date
+  ein             String?   // EIN (XX-XXXXXXX)
+  
+  // Contact Information
+  phoneNumber     String?   // Phone Number
+  email           String?   // Email
+  website         String?   // Website URL
+  
+  // Address Information
+  streetAddress   String?   // Street Address
+  city            String?   // City
+  zipCode         String?   // ZIP Code
+  
+  // Additional Information
+  description     String?   // Business Description
+  industry        String?   // Industry/Sector
+  employeeCount   String?   // Number of employees
+  
+  // Extended Information (JSON fields for structured data)
+  registeredAgentInfo     Json? // Registered agent details
+  contactInfo             Json? // Detailed contact information
+  mailWebInfo             Json? // Website, domain, mailbox information
+  bankingFinanceInfo      Json? // Banking and financial information
+  businessCreditInfo      Json? // Business credit scores and monitoring
+  socialMediaInfo         Json? // Social media accounts and management
+  businessPlanInfo        Json? // Business plan and strategy
+  codesCertificationsInfo Json? // Industry codes and certifications
+  taxInfo                 Json? // Tax information and deadlines
+  
+  // Documents relation
+  documents       BusinessDocument[]
+  
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([userId])
+  @@index([status])
+  @@index([businessType])
+  @@map("business_profiles")
+}
+
+enum BusinessType {
+  LLC
+  CORPORATION
+  S_CORP
+  C_CORP
+  PARTNERSHIP
+  SOLE_PROPRIETORSHIP
+  NON_PROFIT
+  OTHER
+}
+
+enum BusinessStatus {
+  ACTIVE
+  INACTIVE
+  DISSOLVED
+  PENDING
+}
+
+model BusinessDocument {
+  id              String          @id @default(cuid())
+  businessId      String
+  business        BusinessProfile @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  // Document Information
+  documentName    String          // User-defined document name
+  documentType    BusinessDocumentType // SS4, Articles of Incorporation, etc.
+  description     String?         // Optional description
+  
+  // File Information
+  fileName        String          // Original file name
+  fileKey         String          // S3 object key
+  fileUrl         String          // S3 file URL
+  fileSize        Int             // File size in bytes
+  mimeType        String          // MIME type
+  
+  // Document Status
+  isActive        Boolean         @default(true)
+  
+  // Timestamps
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  @@index([businessId])
+  @@index([documentType])
+  @@map("business_documents")
+}
+
+enum BusinessDocumentType {
+  SS4_EIN_LETTER
+  ARTICLES_OF_INCORPORATION
+  OPERATING_AGREEMENT
+  BYLAWS
+  BUSINESS_LICENSE
+  TAX_RETURN
+  FINANCIAL_STATEMENT
+  INSURANCE_POLICY
+  CONTRACT
+  PERMIT
+  CERTIFICATE
+  OTHER
+}
+
+// Waitlist Models
+model Waitlist {
+  id          String   @id @default(cuid())
+  
+  // Contact Information
+  email       String   @unique
+  name        String?  // Optional name if provided
+  company     String?  // Optional company name
+  phone       String?  // Optional phone number
+  
+  // Waitlist Details
+  source      WaitlistSource @default(HOMEPAGE) // Where they signed up from
+  interests   String[]       // Array of interests (e.g., ["CDL_DRIVERS", "LOGISTICS"])
+  message     String?        // Optional message from user
+  
+  // Status & Tracking
+  status      WaitlistStatus @default(PENDING)
+  notified    Boolean        @default(false)    // Whether they've been notified of launch
+  notifiedAt  DateTime?      // When they were notified
+  
+  // Marketing & Analytics
+  utmSource   String?        // UTM tracking
+  utmMedium   String?        
+  utmCampaign String?
+  referrer    String?        // Referring URL
+  ipAddress   String?        // IP address for analytics
+  userAgent   String?        // Browser/device info
+  
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([email])
+  @@index([status])
+  @@index([source])
+  @@index([createdAt])
+  @@map("waitlist")
+}
+
+model ContactRequest {
+  id          String   @id @default(cuid())
+  
+  // Contact Information
+  name        String
+  email       String
+  company     String?
+  phone       String?
+  
+  // Request Details
+  subject     String
+  message     String
+  requestType ContactRequestType @default(GENERAL)
+  priority    ContactPriority    @default(NORMAL)
+  
+  // Status & Assignment
+  status      ContactStatus @default(NEW)
+  assignedTo  String?       // User ID of assigned team member
+  
+  // Response Tracking
+  respondedAt DateTime?
+  resolvedAt  DateTime?
+  
+  // Internal Notes
+  internalNotes String?
+  
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([email])
+  @@index([status])
+  @@index([requestType])
+  @@index([createdAt])
+  @@map("contact_requests")
+}
+
+model Newsletter {
+  id          String   @id @default(cuid())
+  
+  // Subscriber Information
+  email       String   @unique
+  name        String?
+  
+  // Subscription Details
+  isActive    Boolean  @default(true)
+  preferences String[] // Array of newsletter preferences
+  
+  // Tracking
+  source      String?  // Where they subscribed from
+  confirmedAt DateTime? // Email confirmation timestamp
+  
+  // Timestamps
+  subscribedAt DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@index([email])
+  @@index([isActive])
+  @@index([subscribedAt])
+  @@map("newsletter_subscribers")
+}
+
+// Enums for Waitlist & Contact
+enum WaitlistSource {
+  HOMEPAGE
+  LANDING_PAGE
+  BLOG
+  SOCIAL_MEDIA
+  REFERRAL
+  ADVERTISEMENT
+  OTHER
+}
+
+enum WaitlistStatus {
+  PENDING
+  APPROVED
+  NOTIFIED
+  CONVERTED
+  DECLINED
+}
+
+enum ContactRequestType {
+  GENERAL
+  SALES
+  SUPPORT
+  PARTNERSHIP
+  MEDIA
+  TECHNICAL
+  BILLING
+  OTHER
+}
+
+enum ContactPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum ContactStatus {
+  NEW
+  IN_PROGRESS
+  WAITING_FOR_RESPONSE
+  RESOLVED
+  CLOSED
+}
+

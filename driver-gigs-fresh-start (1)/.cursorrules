@@ -1,0 +1,166 @@
+# Driver Gigs - Cursor Rules
+
+You are an expert full-stack developer working on a **Driver Gigs** application - a platform for managing driver opportunities and gig work.
+
+## Tech Stack & Architecture
+
+- **Framework**: Next.js 15.5.3 with App Router
+- **Language**: TypeScript with strict mode
+- **Styling**: Tailwind CSS v4 with custom design system
+- **Database**: PostgreSQL with Prisma ORM
+- **Authentication**: Better-Auth with email/password and Google OAuth
+- **UI Components**: Radix UI primitives with shadcn/ui components
+- **Forms**: React Hook Form with Zod validation
+- **Linting/Formatting**: Biome (not ESLint/Prettier)
+- **State Management**: React hooks and server components
+
+## Project Structure
+
+```
+src/
+├── app/                    # Next.js App Router
+│   ├── api/auth/          # Authentication API routes
+│   ├── dashboard/         # Dashboard pages
+│   ├── sign-in/          # Authentication pages
+│   └── sign-up/
+├── components/
+│   └── ui/               # Reusable UI components (shadcn/ui)
+├── lib/                  # Utility functions and configurations
+│   ├── auth.ts          # Better-Auth configuration
+│   ├── auth-client.ts   # Client-side auth helpers
+│   ├── db.ts           # Prisma client
+│   └── utils.ts        # Utility functions (cn helper)
+├── hooks/              # Custom React hooks
+└── generated/prisma/   # Generated Prisma client
+```
+
+## Code Style & Conventions
+
+### TypeScript
+- Use strict TypeScript configuration
+- Prefer `interface` over `type` for object shapes
+- Use proper typing for React components and props
+- Leverage Next.js built-in types (Metadata, etc.)
+
+### React Components
+- Use function declarations for components: `export default function ComponentName()`
+- Prefer server components by default, add "use client" only when needed
+- Use proper TypeScript props interfaces
+- Follow shadcn/ui component patterns for consistency
+
+### Styling
+- Use Tailwind CSS with utility-first approach
+- Follow the established design system patterns
+- Use `cn()` utility function for conditional classes
+- Prefer dark theme patterns (bg-neutral-900, text-white, etc.)
+- Use class-variance-authority (cva) for component variants
+
+### Database & API
+- Use Prisma for all database operations
+- Follow the established schema patterns (User, Session, Account, Verification)
+- Use Better-Auth for authentication flows
+- Prefer server actions and server components for data fetching
+
+### File Organization
+- Keep components in appropriate directories
+- Use barrel exports where beneficial
+- Follow Next.js App Router conventions
+- Place utilities in `/lib` directory
+
+## Development Guidelines
+
+### Authentication
+- Use Better-Auth for all authentication flows
+- Support both email/password and Google OAuth
+- Follow the established auth patterns in `/lib/auth.ts`
+- Use client-side auth helpers from `/lib/auth-client.ts`
+
+### Forms & Validation
+- Use React Hook Form for form management
+- Implement Zod schemas for validation
+- Follow the established form patterns in sign-in/sign-up pages
+- Handle errors gracefully with proper user feedback
+
+### UI Components
+- Use shadcn/ui components as building blocks
+- Maintain consistency with the established design system
+- Use Radix UI primitives for accessibility
+- Implement proper focus states and ARIA attributes
+
+### Database Operations
+- Use the custom Prisma client from `/lib/db.ts`
+- Follow the established model relationships
+- Use proper TypeScript types from generated Prisma client
+- Handle database errors appropriately
+
+## Code Quality
+
+### Formatting & Linting
+- Use Biome for linting and formatting (configured in biome.json)
+- Follow the 2-space indentation standard
+- Organize imports automatically
+- Follow recommended rules for Next.js and React
+
+### Error Handling
+- Implement proper error boundaries
+- Handle async operations with try/catch
+- Provide meaningful error messages to users
+- Log errors appropriately for debugging
+
+### Performance
+- Leverage Next.js server components for better performance
+- Use proper loading states and suspense boundaries
+- Optimize images and assets
+- Implement proper caching strategies
+
+## Specific Patterns
+
+### Authentication Flow
+```typescript
+// Server-side auth check
+import { auth } from "@/lib/auth";
+const session = await auth.api.getSession({ headers: request.headers });
+
+// Client-side auth actions
+import { signIn, signUp, signOut } from "@/lib/auth-client";
+```
+
+### Component Structure
+```typescript
+interface ComponentProps {
+  // Define props interface
+}
+
+export default function Component({ prop }: ComponentProps) {
+  // Component logic
+  return (
+    // JSX with Tailwind classes
+  );
+}
+```
+
+### Database Operations
+```typescript
+import prisma from "@/lib/db";
+
+// Use Prisma client for database operations
+const users = await prisma.user.findMany();
+```
+
+## Environment & Configuration
+
+- Use environment variables for sensitive data
+- Configure database URL in .env
+- Set up Google OAuth credentials
+- Use proper TypeScript path mapping (@/* for src/*)
+
+## Best Practices
+
+1. **Security**: Always validate inputs, use proper authentication checks
+2. **Accessibility**: Follow WCAG guidelines, use semantic HTML
+3. **Performance**: Optimize bundle size, use proper caching
+4. **Maintainability**: Write clean, self-documenting code
+5. **Testing**: Write tests for critical functionality
+6. **Documentation**: Comment complex logic and business rules
+
+When working on this project, always consider the driver gig use case - this is a platform for connecting drivers with opportunities, so focus on user experience, reliability, and scalability appropriate for a gig economy application.
